@@ -1,0 +1,11 @@
+# sistema e editores
+.DS_Store
+._*
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+# gerados
+*.zip
+demo/documentos/
+demo/crm-demo.sql
