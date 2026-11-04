@@ -115,7 +115,7 @@
         const types = Object.entries(info.saleTypes).map(([k, v]) => `<option value="${esc(k)}" ${k === info.saleType ? 'selected' : ''}>${esc(v)}</option>`).join('');
         const back = document.createElement('div');
         back.className = 'crm-modal-back';
-        back.innerHTML = `<div class="crm-modal" style="max-width:560px">
+        back.innerHTML = `<div class="crm-modal" style="max-width:720px">
             <div class="crm-modal-h"><h3><i class="ti ti-bell-ringing me-2 text-success"></i>Aviso de fechamento</h3><button type="button" class="btn-close" data-x></button></div>
             <div class="crm-modal-b">
                 <p class="mb-1"><b>${esc(info.customer)}</b> chegou ao fechamento (${esc(info.code)}).</p>

@@ -65,7 +65,7 @@ class Menu
         'entradas'   => 'Todas as entradas comerciais por canal (WhatsApp, e-mail, telefone, portal de licitação, indicação...), com tipo de cliente, documentos e etapa da esteira.',
         'entrada'    => 'Registre um pedido de orçamento, uma licitação ou qualquer contato comercial: canal, tipo de cliente, contato, empresa e documentos. Cliente público exige o edital.',
         'oportunidade' => 'Ficha completa: esteira de venda até o fechamento, dados do cliente e do pedido, documentos e linha do tempo. No fechamento, o CRM oferece abrir o ciclo financeiro.',
-        'funil'      => 'Conversas abertas por etapa. Arraste o cartão para outra coluna para mudar a etapa; clique para abrir a conversa. A tela se atualiza sozinha.',
+        'funil'      => 'Oportunidades abertas por etapa. Arraste o cartão para outra coluna para mudar a etapa; clique para ver o resumo na gaveta lateral. A tela se atualiza sozinha.',
         'conversas'  => 'Caixa de entrada do WhatsApp: converse com o cliente, atribua um atendente, ajuste o valor e mova a oportunidade pelo funil.',
         'dashboard'  => 'Pipeline, previsão, vendas e conversão no período, com comparação ao período anterior, funil, ranking de atendentes e motivos de perda.',
         'config'     => 'Etapas do funil, alertas sonoros e pop-up por tipo de evento, integração com o WhatsApp e as suas preferências pessoais.',

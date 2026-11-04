@@ -717,3 +717,11 @@ textarea.crm-jd-filled { box-shadow: 0 0 0 .2rem rgba(var(--tblr-primary-rgb), .
 details.card > summary::-webkit-details-marker { display: none; }
 details.card > summary::after { content: '\203A'; margin-left: auto; font-size: 1.4rem; transition: transform .2s; }
 details.card[open] > summary::after { transform: rotate(90deg); }
+
+/* ===== acertos de visual do dashboard ===== */
+.crm-hotbtn, .crm-hotbtn:hover { color: #1f1300; }
+.crm .card-header .crm-legend { flex: 0 0 auto; flex-wrap: nowrap; }
+.crm-legend span { white-space: nowrap; }
+.crm .card.h-100 > .card-body:has(> svg.crm-chart) { display: flex; align-items: center; }
+/* a legenda do gráfico vai numa linha própria, abaixo do título (não estoura o cartão) */
+.crm .card-header .crm-legend { flex: 1 0 100%; margin-left: 0 !important; justify-content: flex-start; }
