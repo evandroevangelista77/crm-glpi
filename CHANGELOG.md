@@ -3,6 +3,7 @@
 ## 0.7.0
 
 - Nova tela **Gestão de Leads** no menu CRM: leads captados em eventos (plugin Gestão de Eventos), por evento, com situação (novo, contatado, qualificado, convertido, descartado), temperatura, interesse e conversão em oportunidade (canal "Presencial / evento"). Tabela `glpi_plugin_crm_leads`; `Lead::receive()` recebe os leads sem duplicar.
+- Clicar num lead abre a **gaveta lateral** com o resumo completo (contato com e-mail e WhatsApp, evento de origem, interesse, observações, se o e-mail é recorrente e a oportunidade ligada), com troca de situação, conversão e exclusão. Os cartões de totais do topo também abrem a gaveta, com a lista dos leads do grupo (todos, novos, quentes, convertidos) e botão para voltar à lista.
 - Na Gestão de Eventos 1.3.0, a aba Marketing ganhou "Leads captados" e o botão **Enviar leads para o CRM**.
 - Teste `tests/leads.php`.
 

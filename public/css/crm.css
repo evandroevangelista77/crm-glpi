@@ -755,3 +755,13 @@ details.card[open] > summary::after { transform: rotate(90deg); }
 .crm-win-facts b { font-size: 1.05rem; color: #f1f5f9; }
 .crm-movebar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .crm-movebar .form-select { max-width: 260px; }
+
+/* ---- gaveta do lead ---- */
+.crm-lead-row:hover { background: rgb(59 130 246 / .07); }
+.crm-lead-head { display: flex; gap: .9rem; align-items: center; padding-bottom: .9rem; border-bottom: 1px solid var(--tblr-border-color); }
+.crm-avatar-lg { width: 56px; height: 56px; font-size: 1.15rem; flex: none; }
+.crm-lead-section { margin: 1.1rem 0 .4rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tblr-secondary-color); }
+.crm-lead-field { display: flex; gap: .7rem; padding: .45rem 0; border-bottom: 1px dashed var(--tblr-border-color); }
+.crm-lead-field > i { color: var(--c, #3b82f6); font-size: 1.15rem; margin-top: .15rem; }
+.crm-lead-field span { display: block; font-size: .72rem; color: var(--tblr-secondary-color); }
+.crm-lead-actions { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--tblr-border-color); }

@@ -43,12 +43,12 @@ $conv = $by('status', 'convertido');
 Menu::header('Gestão de Leads', 'leads');
 echo "<div class='crm'>" . Menu::title('Gestão de Leads', 'leads') . "</div>";
 
-$kpi = fn (string $label, string $value, string $sub, string $color) => "<div class='col-6 col-lg-3'><div class='crm-kpi' style='--c:$color'><div class='crm-kpi-label'>" . Menu::e($label) . "</div><div class='crm-kpi-value'>" . Menu::e($value) . "</div><div class='crm-kpi-sub'>" . Menu::e($sub) . "</div></div></div>";
+$kpi = fn (string $label, string $value, string $sub, string $color, string $key) => "<div class='col-6 col-lg-3'><div class='crm-kpi oak-kpi-click' data-kpi='$key' role='button' tabindex='0' title='Clique para ver os leads' style='--c:$color'><div class='crm-kpi-label'>" . Menu::e($label) . "</div><div class='crm-kpi-value'>" . Menu::e($value) . "</div><div class='crm-kpi-sub'>" . Menu::e($sub) . "</div></div></div>";
 echo "<div class='crm'><div class='row g-3 mb-3'>"
-    . $kpi('Leads de eventos', (string) $total, count($events) . ' evento(s)', '#3b82f6')
-    . $kpi('Novos, sem contato', (string) $by('status', 'novo'), 'aguardando o comercial', '#f59e0b')
-    . $kpi('Leads quentes', (string) $by('temperature', 'quente'), 'prioridade de contato', '#ef4444')
-    . $kpi('Convertidos', (string) $conv, ($total ? round(100 * $conv / $total) : 0) . '% viraram oportunidade', '#22c55e')
+    . $kpi('Leads de eventos', (string) $total, count($events) . ' evento(s)', '#3b82f6', 'all')
+    . $kpi('Novos, sem contato', (string) $by('status', 'novo'), 'aguardando o comercial', '#f59e0b', 'novo')
+    . $kpi('Leads quentes', (string) $by('temperature', 'quente'), 'prioridade de contato', '#ef4444', 'quente')
+    . $kpi('Convertidos', (string) $conv, ($total ? round(100 * $conv / $total) : 0) . '% viraram oportunidade', '#22c55e', 'convertido')
     . "</div>";
 
 // eventos
@@ -79,7 +79,7 @@ echo "<div class='card'><div class='card-header'><h3 class='card-title'>" . coun
 foreach ($rows as $l) {
     $id = (int) $l['id'];
     $opp = (int) $l['conversas_id'];
-    echo "<tr data-id='$id'><td><div class='d-flex align-items-center gap-2'>" . Conversa::avatar($l['name'])
+    echo "<tr data-id='$id' class='crm-lead-row' style='cursor:pointer' tabindex='0'><td><div class='d-flex align-items-center gap-2'>" . Conversa::avatar($l['name'])
         . "<div><div class='fw-bold'>" . Menu::e($l['name']) . "</div><div class='small text-secondary'>" . Menu::e(trim(($l['job_title'] ?: '') . ($l['job_title'] && $l['company'] ? ' · ' : '') . ($l['company'] ?: ''))) . "</div>"
         . "<div class='small text-secondary'>" . ($l['email'] ? "<i class='ti ti-mail'></i> " . Menu::e($l['email']) : '') . ($l['phone'] ? " &nbsp;<i class='ti ti-phone'></i> " . Menu::e($l['phone']) : '') . "</div></div></div></td>"
         . "<td><span class='crm-chip'><i class='ti ti-calendar-event'></i> " . Menu::e($l['event_name']) . "</span>" . ($l['event_date'] ? "<div class='small text-secondary mt-1'>" . Menu::e(Html::convDate($l['event_date'])) . "</div>" : '') . "</td>"
@@ -97,6 +97,21 @@ if (!$rows) {
     echo "<tr><td colspan='7' class='text-center text-secondary py-4'>Nenhum lead com esses filtros. Os leads chegam pelo botão \"Enviar leads para o CRM\" na Gestão de Eventos.</td></tr>";
 }
 echo "</tbody></table></div></div></div>";
-echo "<script type='application/json' id='crm-boot'>" . json_encode(['ajax' => Menu::url('/front/ajax.php')], JSON_HEX_TAG | JSON_HEX_AMP) . "</script>";
-echo Menu::script('leads.js');
+// dados completos de cada lead para a gaveta lateral
+$data = [];
+foreach ($all as $l) {
+    $opp = (int) $l['conversas_id'];
+    $data[(int) $l['id']] = [
+        'id' => (int) $l['id'], 'name' => $l['name'], 'company' => (string) $l['company'], 'job' => (string) $l['job_title'], 'email' => (string) $l['email'], 'phone' => (string) $l['phone'],
+        'event' => (string) $l['event_name'], 'eventCode' => (string) $l['event_code'], 'eventDate' => $l['event_date'] ? Html::convDate($l['event_date']) : '',
+        'interest' => Lead::INTERESTS[$l['interest']] ?? 'Outro', 'temp' => $l['temperature'], 'status' => $l['status'], 'notes' => (string) $l['notes'],
+        'captured' => $l['date_creation'] ? Html::convDateTime($l['date_creation']) : '', 'ago' => Conversa::ago($l['date_creation']), 'updated' => $l['date_mod'] ? Html::convDateTime($l['date_mod']) : '',
+        'hue' => Conversa::hue($l['name']), 'initials' => Conversa::initials($l['name']),
+        'oppUrl' => $opp ? Menu::page('/front/oportunidade.php?id=' . $opp) : '', 'oppCode' => $opp ? Conversa::code($opp) : '',
+        'siblings' => count(array_filter($all, fn ($x) => $x['email'] !== '' && $x['email'] === $l['email'])),
+    ];
+}
+$meta = ['statuses' => array_map(fn ($s) => ['label' => $s[0], 'color' => $s[1], 'icon' => $s[2]], Lead::STATUSES), 'temps' => array_map(fn ($s) => ['label' => $s[0], 'color' => $s[1], 'icon' => $s[2]], Lead::TEMPS)];
+echo "<script type='application/json' id='crm-boot'>" . json_encode(['ajax' => Menu::url('/front/ajax.php'), 'canCreate' => $canCreate, 'order' => array_map(fn ($l) => (int) $l['id'], $all), 'leads' => $data] + $meta, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) . "</script>";
+echo Menu::script('drawer.js') . Menu::script('leads.js');
 Html::footer();
