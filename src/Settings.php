@@ -34,6 +34,12 @@ class Settings
     }
 
     /** Perguntar se deseja iniciar um ciclo financeiro quando a oportunidade chega ao fechamento. */
+    /** Abre o ciclo financeiro sozinho quando a venda é concretizada. */
+    public static function autoCycle(): bool
+    {
+        return self::get('auto_cycle', '1') === '1';
+    }
+
     public static function askCycle(): bool
     {
         return self::get('ask_cycle', '1') === '1';

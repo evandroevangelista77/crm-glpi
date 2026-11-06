@@ -145,8 +145,7 @@
                 if (!res.ok || out.ok === false) throw new Error(out.error || `HTTP ${res.status}`);
                 back.remove();
                 document.removeEventListener('keydown', onKey);
-                popup({label: 'Ciclo financeiro iniciado', title: out.cycle.code || 'Ciclo aberto', body: `${info.customer} segue para a validação da documentação.`, icon: 'ti-coin', color: '#22c55e', url: out.cycle.url}, 12);
-                done(out.cycle);
+                celebrate(out.cycle, info.customer, done);
             } catch (err) {
                 back.querySelector('[data-err]').textContent = err.message;
                 btn.disabled = false;
@@ -155,10 +154,132 @@
         document.body.appendChild(back);
     }
 
+    // ---- venda concretizada: animação de fechamento e abertura do ciclo
+    function confetti(host) {
+        const colors = ['#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#a855f7', '#14b8a6'];
+        for (let i = 0; i < 70; i++) {
+            const p = document.createElement('i');
+            p.className = 'crm-confetti';
+            p.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};--dx:${(Math.random() - .5) * 240}px;--rot:${Math.random() * 720 - 360}deg;animation-delay:${Math.random() * .6}s;animation-duration:${1.8 + Math.random() * 1.4}s`;
+            host.appendChild(p);
+        }
+    }
+    const EVT = {
+        aviso: {title: 'Aviso de fechamento', icon: 'ti-bell-ringing', sub: (c) => `Abrindo o ciclo financeiro <b>${esc(c.code || '')}</b>…`, confetti: false},
+        novo:  {title: 'Venda fechada!', icon: 'ti-trophy', sub: (c) => `Abrindo o ciclo financeiro <b>${esc(c.code || '')}</b>${c.docs ? ` com ${c.docs} documento${c.docs > 1 ? 's' : ''}` : ''}…`, confetti: true},
+        retomado: {title: 'Ciclo liberado', icon: 'ti-player-play', sub: (c) => `Retomando o ciclo financeiro <b>${esc(c.code || '')}</b>…`, confetti: false},
+        ganho: {title: 'Venda fechada!', icon: 'ti-trophy', sub: (c) => `Indo para o ciclo financeiro <b>${esc(c.code || '')}</b>…`, confetti: true},
+    };
+    function celebrate(cycle, customer, done = () => {}) {
+        const mode = EVT[cycle.mode] ? cycle.mode : 'novo';
+        const ev = EVT[mode];
+        play('cash', 80);
+        const back = document.createElement('div');
+        back.className = 'crm-win-back';
+        back.innerHTML = `<div class="crm-win">
+            <div class="crm-win-check"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M14 27l8 8 16-17"/></svg></div>
+            <h2>${ev.title}</h2>
+            <p class="crm-win-who">${esc(customer || cycle.customer || '')}</p>
+            <p class="crm-win-sub"><i class="ti ${ev.icon} me-1"></i>${ev.sub(cycle)}</p>
+            <div class="crm-win-bar"><span></span></div></div>`;
+        document.body.appendChild(back);
+        if (ev.confetti) confetti(back);
+        let went = false;
+        const go = () => {
+            if (went) return;
+            went = true;
+            if (cycle.url) {
+                const q = new URLSearchParams({crm_evt: mode, cliente: customer || cycle.customer || '', valor: cycle.amount || '', data: cycle.date || '', docs: cycle.docs || 0});
+                location.href = `${cycle.url}${cycle.url.includes('?') ? '&' : '?'}${q}`;
+            } else { back.remove(); done(cycle); }
+        };
+        setTimeout(go, ['aviso', 'retomado'].includes(mode) ? 1800 : 2600);
+        back.addEventListener('click', go);
+    }
+    // pergunta antes de mandar a oportunidade para a esteira do ciclo financeiro
+    function confirmCycle(customer) {
+        return new Promise((resolve) => {
+            const back = document.createElement('div');
+            back.className = 'crm-modal-back';
+            back.style.alignItems = 'center';
+            back.innerHTML = `<div class="crm-modal" style="max-width:480px">
+                <div class="crm-modal-h"><h3><i class="ti ti-help-circle me-2 text-warning"></i>Enviar para o ciclo financeiro?</h3></div>
+                <div class="crm-modal-b"><p class="mb-1">Tem certeza que <b>${esc(customer || 'esta oportunidade')}</b> pode seguir para a <b>esteira do ciclo financeiro</b>?</p>
+                    <p class="text-secondary small mb-0">Ao confirmar, o ciclo é aberto com os documentos e os dados da venda.</p></div>
+                <div class="crm-modal-f"><button type="button" class="btn btn-secondary" data-no>Não</button>
+                    <button type="button" class="btn btn-success ms-auto" data-yes><i class="ti ti-check me-1"></i>Sim, enviar</button></div></div>`;
+            const end = (v) => { back.remove(); document.removeEventListener('keydown', onKey); resolve(v); };
+            const onKey = (e) => e.key === 'Escape' && end(false);
+            document.addEventListener('keydown', onKey);
+            back.querySelector('[data-no]').onclick = () => end(false);
+            back.querySelector('[data-yes]').onclick = () => end(true);
+            document.body.appendChild(back);
+            back.querySelector('[data-yes]').focus();
+        });
+    }
+    // resposta de mover/ganhar: ciclo aberto sozinho -> animação; senão, o aviso de fechamento (pergunta)
+    function won(out, customer, done = () => {}) {
+        if (out && out.paused) {
+            popup({label: 'Ciclo financeiro interrompido', title: out.paused.code || 'Ciclo', body: 'A oportunidade voltou para a negociação. O ciclo só continua quando ela seguir para o fechamento.', icon: 'ti-player-pause', color: '#f59e0b'}, 10);
+            done();
+            return;
+        }
+        if (out && out.cycle) { celebrate(out.cycle, customer, done); return; }
+        closing(out && out.closing, done);
+    }
+
+    // ---- no Ciclo Financeiro: aviso no centro da tela
+    (function cycleEvent() {
+        const q = new URLSearchParams(location.search);
+        const mode = q.get('crm_evt');
+        if (!mode || !/\/plugins\/ciclo\//.test(location.pathname)) return;
+        const docs = +q.get('docs') || 0;
+        const valor = Number(q.get('valor'));
+        const cliente = q.get('cliente') || '';
+        const data = q.get('data') || new Date().toISOString().slice(0, 10);
+        ['crm_evt', 'cliente', 'valor', 'data', 'docs'].forEach((k) => q.delete(k));
+        try { history.replaceState(null, '', location.pathname + (q.toString() ? `?${q}` : '') + location.hash); } catch (e) { /* segue */ }
+        const fmtDate = (d) => d.split('-').reverse().join('/');
+        const show = () => {
+            const code = (document.title.match(/CF-\d+/) || document.body.innerText.match(/CF-\d+/) || [''])[0];
+            const aviso = mode === 'aviso';
+            const retomado = mode === 'retomado';
+            const head = retomado ? 'Ciclo liberado' : aviso ? 'Aviso de fechamento' : (mode === 'novo' ? 'Cliente fechado!' : 'Venda concretizada!');
+            const line = retomado ? 'A oportunidade seguiu da negociação e o ciclo financeiro voltou a andar' : aviso ? 'A oportunidade chegou ao fechamento e o ciclo financeiro foi aberto' : (mode === 'novo' ? 'Um novo ciclo financeiro foi aberto' : 'Venda concretizada, o ciclo financeiro segue em andamento');
+            const back = document.createElement('div');
+            back.className = 'crm-win-back crm-win-center';
+            back.innerHTML = `<div class="crm-win">
+                <div class="crm-win-check"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M14 27l8 8 16-17"/></svg></div>
+                <h2>${head}</h2>
+                <p class="crm-win-who">${line}${code ? ` — <b>${esc(code)}</b>` : ''}</p>
+                <div class="crm-win-facts">
+                    ${cliente ? `<div><small>Cliente</small><b>${esc(cliente)}</b></div>` : ''}
+                    ${valor ? `<div><small>Valor</small><b>R$ ${brl(valor)}</b></div>` : ''}
+                    <div><small>Data</small><b>${esc(fmtDate(data))}</b></div>
+                </div>
+                <div class="crm-win-chips">
+                    <span><i class="ti ti-paperclip"></i> ${docs} documento${docs === 1 ? '' : 's'} da venda</span>
+                    <span><i class="ti ti-database-import"></i> Dados do CRM preenchidos</span>
+                </div>
+                <button type="button" class="btn btn-success mt-3" data-ok><i class="ti ti-arrow-right me-1"></i>Seguir</button></div>`;
+            document.body.appendChild(back);
+            if (mode === 'novo' || mode === 'ganho') confetti(back);
+            play('cash', 70);
+            const off = () => back.remove();
+            back.querySelector('[data-ok]').onclick = off;
+            back.addEventListener('click', (e) => e.target === back && off());
+            document.addEventListener('keydown', (e) => e.key === 'Escape' && off(), {once: true});
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
+    })();
+
     window.CRMAlerts = {
         play,
         popup,
         closing,
+        celebrate,
+        confirmCycle,
+        won,
         tones: Object.keys(TONES),
         test: (tone, volume) => { if (!play(tone, volume)) popup({label: 'Som bloqueado', title: 'Clique na página e tente de novo', icon: 'ti-volume-off', color: '#f59e0b'}, 4); },
     };

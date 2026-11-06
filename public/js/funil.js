@@ -157,7 +157,7 @@
         if (kind === 'won') {
             const out = await api('won', {id});
             toast(`${c.title}: venda registrada.`);
-            return window.CRMAlerts ? window.CRMAlerts.closing(out.closing, load) : load();
+            return window.CRMAlerts ? window.CRMAlerts.won(out, c.title, load) : load();
         }
         modal('Marcar como perdido', `<p class="mb-2">Qual o motivo da perda de <b>${esc(c.title)}</b>?</p><input class="form-control" placeholder="Ex.: preço, escolheu concorrente, sem retorno" data-reason>`, [
             {label: 'Cancelar'},
@@ -204,13 +204,14 @@
                 const etapa = +col.dataset.etapa;
                 const c = data.cards.find((x) => x.id === id);
                 if (!c || c.etapa === etapa) return;
+                if (data.stages.find((s) => s.id === etapa)?.kind === 'fechamento' && window.CRMAlerts && !(await window.CRMAlerts.confirmCycle(c.title))) return;
                 const before = c.etapa;
                 c.etapa = etapa; // atualiza na hora; volta se o servidor recusar
                 render();
                 try {
                     const out = await api('move', {id, etapa});
                     toast(`${c.title} movida para ${data.stages.find((s) => s.id === etapa).name}.`);
-                    if (out.closing && window.CRMAlerts) window.CRMAlerts.closing(out.closing, load);
+                    if ((out.cycle || out.closing || out.paused) && window.CRMAlerts) window.CRMAlerts.won(out, c.title, load);
                 } catch (err) {
                     c.etapa = before;
                     render();

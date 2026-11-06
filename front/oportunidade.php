@@ -69,12 +69,33 @@ foreach ($keys as $i => $eid) {
     $e = $etapas[$eid];
     $state = $won || $i < $cur ? 'done' : ($i === $cur ? ($lost ? 'lost' : 'current') : 'todo');
     $icon = $state === 'done' ? 'ti-check' : ($state === 'lost' ? 'ti-x' : '');
-    $click = $edit && $open && $i !== $cur ? " data-etapa='$eid' role='button'" : '';
+    $click = $edit && $open && $i !== $cur ? " data-etapa='$eid' data-kind='" . Menu::e($e['kind']) . "' role='button'" : '';
     echo "<div class='crm-estep $state'$click><div class='crm-edot'>" . ($icon ? "<i class='ti $icon'></i>" : ($i + 1)) . "</div>"
         . "<div class='crm-elabel'>" . Menu::e($e['name']) . "</div><div class='crm-edetail'>{$e['probability']}%" . ($e['scope'] === 'publico' ? ' · público' : '') . "</div></div>";
 }
-echo "<div class='crm-estep " . ($won ? 'done' : 'todo') . "'><div class='crm-edot'><i class='ti ti-trophy'></i></div><div class='crm-elabel'>Venda</div><div class='crm-edetail'>" . ($won ? 'fechada' : 'resultado') . "</div></div>";
-echo "</div></div></div>";
+$wonClick = $edit && $open ? " data-won='1' role='button' title='Marcar como venda concretizada'" : '';
+echo "<div class='crm-estep " . ($won ? 'done' : 'todo') . "'$wonClick><div class='crm-edot'><i class='ti ti-trophy'></i></div><div class='crm-elabel'>Venda</div><div class='crm-edetail'>" . ($won ? 'fechada' : 'resultado') . "</div></div>";
+echo "</div>";
+// avançar ou escolher a etapa
+if ($edit && $open) {
+    $next = $keys[$cur + 1] ?? null;
+    echo "<div class='crm-movebar mt-3 pt-3 border-top'>";
+    if ($next) {
+        echo "<button type='button' class='btn btn-primary' data-etapa='$next' data-kind='" . Menu::e($etapas[$next]['kind']) . "'><i class='ti ti-arrow-right me-1'></i>Avançar para " . Menu::e($etapas[$next]['name']) . "</button>";
+    } else {
+        echo "<button type='button' class='btn btn-success' data-won='1'><i class='ti ti-trophy me-1'></i>Concretizar venda</button>";
+    }
+    echo "<span class='text-secondary small ms-2'>ou escolher a fase:</span><select class='form-select form-select-sm' id='crm-goto'><option value=''>Mover para…</option>";
+    foreach ($keys as $eid) {
+        if ((int) $eid !== (int) $c['plugin_crm_etapas_id']) {
+            echo "<option value='$eid' data-kind='" . Menu::e($etapas[$eid]['kind']) . "'>" . Menu::e($etapas[$eid]['name']) . "</option>";
+        }
+    }
+    echo "</select><span class='ms-auto d-flex gap-2'>"
+        . ($next ? "<button type='button' class='btn btn-outline-success' data-won='1'><i class='ti ti-trophy me-1'></i>Marcar como ganha</button>" : '')
+        . "<button type='button' class='btn btn-outline-danger' id='crm-lose'><i class='ti ti-thumb-down me-1'></i>Perdida</button></span></div>";
+}
+echo "</div></div>";
 
 // aviso de fechamento / ciclo financeiro
 if (($open && $curKind === 'fechamento') || $won) {
@@ -212,7 +233,7 @@ echo "<div class='crm-tl'><span class='crm-kpi-icon' style='--c:#64748b'><i clas
     . Menu::e(Conversa::sourceLabel($c['source'])) . " · " . Menu::e(Html::convDateTime($c['date_creation'])) . "</div></div></div>";
 echo "</div></div></div></div>";
 
-$boot = ['ajax' => Menu::url('/front/ajax.php'), 'id' => $id, 'closing' => $closing];
+$boot = ['ajax' => Menu::url('/front/ajax.php'), 'id' => $id, 'title' => $title, 'hasCycle' => (bool) $ciclo, 'closing' => $closing];
 echo "<script type='application/json' id='crm-boot'>" . json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) . "</script>";
 echo Menu::script('ficha.js');
 Html::footer();

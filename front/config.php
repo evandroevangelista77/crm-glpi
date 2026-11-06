@@ -47,6 +47,7 @@ if (isset($_POST['section'])) {
             'sla_minutes'   => (string) max(0, (int) ($_POST['sla_minutes'] ?? 60)),
             'popup_seconds' => (string) max(3, min(60, (int) ($_POST['popup_seconds'] ?? 8))),
             'ask_cycle'     => isset($_POST['ask_cycle']) ? '1' : '0',
+            'auto_cycle'    => isset($_POST['auto_cycle']) ? '1' : '0',
         ]);
         Session::addMessageAfterRedirect('Regras de alerta salvas.', false, INFO);
     } elseif ($section === 'etapas') {
@@ -155,7 +156,8 @@ if ($tab === 'alertas' && $admin) {
     echo "</tbody></table></div><div class='card-body border-top'><div class='row g-3'>"
         . "<div class='col-md-4'><label class='form-label'>SLA: alertar conversa sem resposta após (minutos)</label><input class='form-control' type='number' min='0' name='sla_minutes' value='" . Settings::slaMinutes() . "'><div class='form-hint'>0 desliga o alerta de SLA.</div></div>"
         . "<div class='col-md-4'><label class='form-label'>Duração do pop-up (segundos)</label><input class='form-control' type='number' min='3' max='60' name='popup_seconds' value='" . Settings::popupSeconds() . "'></div>"
-        . "<div class='col-md-4'><label class='form-label'>Aviso de fechamento</label><label class='form-check form-switch'><input class='form-check-input' type='checkbox' name='ask_cycle'" . $check(Settings::askCycle()) . "><span class='form-check-label'>Perguntar se deseja iniciar o ciclo financeiro</span></label></div></div>"
+        . "<div class='col-md-4'><label class='form-label'>Aviso de fechamento</label><label class='form-check form-switch'><input class='form-check-input' type='checkbox' name='ask_cycle'" . $check(Settings::askCycle()) . "><span class='form-check-label'>Perguntar se deseja iniciar o ciclo financeiro</span></label></div>"
+        . "<div class='col-md-4'><label class='form-label'>Venda concretizada</label><label class='form-check form-switch'><input class='form-check-input' type='checkbox' name='auto_cycle'" . $check(Settings::autoCycle()) . "><span class='form-check-label'>Abrir o ciclo financeiro sozinho, levando os documentos</span></label></div></div>"
         . "<div class='form-hint mt-3'>Cada pessoa também pode silenciar som ou pop-up em <b>Minhas preferências</b>. Quem fez a ação não recebe o próprio alerta, e atendentes só são avisados das conversas que podem ver.</div>"
         . "</div><div class='card-footer text-end'><button class='btn btn-primary'>Salvar regras</button></div></form>";
 }

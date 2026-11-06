@@ -34,10 +34,15 @@ try {
     if (!$post) {
         throw new RuntimeException('Use POST.', 405);
     }
+    $cycle = null;
+    $paused = null;
     $closing = null; // aviso de fechamento: o navegador pergunta se deve iniciar o ciclo financeiro
     switch ($in['action'] ?? '') {
         case 'move':
-            $closing = Conversa::load($id, true)->moveTo((int) ($in['etapa'] ?? 0));
+            $conv = Conversa::load($id, true);
+            $closing = $conv->moveTo((int) ($in['etapa'] ?? 0));
+            $cycle = $conv->autoCycle;
+            $paused = $conv->cyclePaused;
             break;
         case 'assign':
             Conversa::load($id, true)->assign((int) ($in['user'] ?? 0));
@@ -46,7 +51,9 @@ try {
             Conversa::load($id, true)->setValue(Conversa::parseMoney((string) ($in['value'] ?? 0)));
             break;
         case 'won':
-            $closing = Conversa::load($id, true)->close(Conversa::WON);
+            $conv = Conversa::load($id, true);
+            $closing = $conv->close(Conversa::WON);
+            $cycle = $conv->autoCycle;
             break;
         case 'lost':
             $reason = trim((string) ($in['reason'] ?? ''));
@@ -73,7 +80,7 @@ try {
         default:
             throw new RuntimeException('Ação desconhecida.', 400);
     }
-    $reply(['ok' => true, 'closing' => $closing]);
+    $reply(['ok' => true, 'closing' => $closing, 'cycle' => $cycle, 'paused' => $paused]);
 } catch (Throwable $e) {
     $code = $e->getCode() >= 400 && $e->getCode() < 600 ? (int) $e->getCode() : 500;
     $reply(['ok' => false, 'error' => $e->getMessage()], $code);

@@ -725,3 +725,33 @@ details.card[open] > summary::after { transform: rotate(90deg); }
 .crm .card.h-100 > .card-body:has(> svg.crm-chart) { display: flex; align-items: center; }
 /* a legenda do gráfico vai numa linha própria, abaixo do título (não estoura o cartão) */
 .crm .card-header .crm-legend { flex: 1 0 100%; margin-left: 0 !important; justify-content: flex-start; }
+
+/* ---- venda fechada: animação de fechamento e aviso no Ciclo ---- */
+.crm-win-back { position: fixed; inset: 0; z-index: 2100; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;
+    background: radial-gradient(circle at 50% 45%, rgb(16 185 129 / .35), rgb(2 6 23 / .88) 70%); animation: crm-win-fade .35s ease both; }
+.crm-win { position: relative; z-index: 1; text-align: center; color: #e2e8f0; padding: 2rem 2.5rem; max-width: 520px; width: calc(100% - 2rem); border-radius: 18px; cursor: default;
+    background: linear-gradient(160deg, #0b1f1a, #0f172a 60%); border: 1px solid rgb(34 197 94 / .55); box-shadow: 0 30px 80px rgb(0 0 0 / .6), 0 0 70px rgb(34 197 94 / .3); animation: crm-pop .5s cubic-bezier(.2,1.3,.3,1) both; }
+.crm-win h2 { margin: .6rem 0 .2rem; font-size: 1.7rem; color: #4ade80; }
+.crm-win-who { font-size: 1.05rem; margin: 0 0 .4rem; color: #f1f5f9; }
+.crm-win-sub { color: #94a3b8; font-size: .9rem; margin: .5rem 0 0; }
+.crm-win-check { width: 84px; height: 84px; margin: 0 auto; border-radius: 50%; background: rgb(34 197 94 / .15); box-shadow: 0 0 0 0 rgb(34 197 94 / .6); animation: crm-win-pulse 1.6s ease-out infinite; }
+.crm-win-check svg { width: 100%; height: 100%; }
+.crm-win-check circle { stroke: #22c55e; stroke-width: 2.5; stroke-dasharray: 151; stroke-dashoffset: 151; animation: crm-win-draw .7s .1s ease forwards; }
+.crm-win-check path { stroke: #4ade80; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: crm-win-draw .5s .7s ease forwards; }
+.crm-win-chips { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin: .6rem 0 .2rem; }
+.crm-win-chips span { background: rgb(255 255 255 / .07); border: 1px solid rgb(255 255 255 / .12); border-radius: 999px; padding: .2rem .7rem; font-size: .82rem; }
+.crm-win-chips i { color: #4ade80; margin-right: .25rem; }
+.crm-win-bar { height: 4px; background: rgb(255 255 255 / .1); border-radius: 4px; margin-top: 1.1rem; overflow: hidden; }
+.crm-win-bar span { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); animation: crm-win-bar 2.5s linear forwards; }
+.crm-confetti { position: absolute; top: -14px; width: 9px; height: 15px; border-radius: 2px; opacity: 0; animation: crm-confetti linear forwards; pointer-events: none; }
+@keyframes crm-win-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes crm-win-draw { to { stroke-dashoffset: 0; } }
+@keyframes crm-win-bar { from { width: 0; } to { width: 100%; } }
+@keyframes crm-win-pulse { 0% { box-shadow: 0 0 0 0 rgb(34 197 94 / .55); } 100% { box-shadow: 0 0 0 28px rgb(34 197 94 / 0); } }
+@keyframes crm-confetti { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), 105vh) rotate(var(--rot)); } }
+.crm-win-facts { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; justify-content: center; margin: .8rem 0 .4rem; }
+.crm-win-facts div { display: flex; flex-direction: column; min-width: 90px; }
+.crm-win-facts small { color: #94a3b8; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.crm-win-facts b { font-size: 1.05rem; color: #f1f5f9; }
+.crm-movebar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.crm-movebar .form-select { max-width: 260px; }

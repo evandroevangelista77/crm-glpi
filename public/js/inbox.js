@@ -98,10 +98,16 @@
             toast(ok);
             const reload = () => setTimeout(() => location.reload(), 300);
             // chegou ao fechamento: pergunta se deve iniciar o ciclo financeiro antes de recarregar
-            if (out.closing && window.CRMAlerts) window.CRMAlerts.closing(out.closing, reload); else reload();
+            if ((out.cycle || out.closing || out.paused) && window.CRMAlerts) window.CRMAlerts.won(out, '', reload); else reload();
         } catch (e) { toast(e.message, 'err'); }
     };
-    document.querySelector('[data-act="etapa"]')?.addEventListener('change', (e) => act('move', {etapa: +e.target.value}, 'Etapa atualizada.'));
+    const etapaSel = document.querySelector('[data-act="etapa"]');
+    let etapaAtual = etapaSel ? etapaSel.value : '';
+    etapaSel?.addEventListener('change', async (e) => {
+        if (e.target.selectedOptions[0].dataset.kind === 'fechamento' && !boot.hasCycle && window.CRMAlerts && !(await window.CRMAlerts.confirmCycle(boot.title))) { e.target.value = etapaAtual; return; }
+        etapaAtual = e.target.value;
+        act('move', {etapa: +e.target.value}, 'Etapa atualizada.');
+    });
     document.querySelector('[data-act="assign"]')?.addEventListener('change', (e) => act('assign', {user: +e.target.value}, 'Atendente atualizado.'));
     document.querySelector('button[data-act="value"]')?.addEventListener('click', () => {
         const v = document.querySelector('[data-act-input="value"]').value.replace(/\./g, '').replace(',', '.');

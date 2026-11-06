@@ -107,7 +107,7 @@ echo "</section>";
 // --- detalhes
 $opts = '';
 foreach (Etapa::forClient($c['client_type']) as $eid => $e) {
-    $opts .= "<option value='$eid'" . ((int) $c['plugin_crm_etapas_id'] === $eid ? ' selected' : '') . '>' . Menu::e($e['name']) . '</option>';
+    $opts .= "<option value='$eid' data-kind='" . Menu::e($e['kind']) . "'" . ((int) $c['plugin_crm_etapas_id'] === $eid ? ' selected' : '') . '>' . Menu::e($e['name']) . '</option>';
 }
 $users = "<option value='0'>Sem atendente</option>";
 foreach (Conversa::attendantOptions() as $uid => $uname) {
@@ -142,7 +142,7 @@ if ($edit) {
 }
 echo "</aside></div>";
 
-$boot = ['ajax' => Menu::url('/front/ajax.php'), 'id' => $id, 'messages' => Conversa::messages($id)];
+$boot = ['ajax' => Menu::url('/front/ajax.php'), 'id' => $id, 'title' => Conversa::title($c), 'hasCycle' => !empty($c['ciclo_id']), 'messages' => Conversa::messages($id)];
 echo "<script type='application/json' id='crm-boot'>" . json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) . "</script>";
 echo Menu::script('inbox.js');
 Html::footer();

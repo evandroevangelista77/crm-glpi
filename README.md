@@ -61,7 +61,7 @@ Campos opcionais: `empresa`, `email`, `tipo_cliente` (`privado`/`publico`), `ori
 
 ### Ciclo financeiro (opcional)
 
-Se o plugin **Ciclo Financeiro** estiver ativo, o aviso de fechamento abre um ciclo nele com os dados da oportunidade (cliente, valor, tipo de venda, privado ou público, contato, CNPJ, nº do edital e data do pregão). Sem esse plugin, o CRM funciona normalmente e só não oferece o ciclo.
+Se o plugin **Ciclo Financeiro** estiver ativo, o aviso de fechamento abre um ciclo nele com os dados da oportunidade (cliente, valor, tipo de venda, privado ou público, contato, CNPJ, nº do edital e data do pregão). Quando a venda é marcada como ganha, o ciclo abre sozinho (dá para desligar em Configurações), leva todos os documentos da oportunidade e já vem com os dados da venda preenchidos; o CRM mostra uma animação de fechamento e a tela do Ciclo avisa, no centro, que o cliente fechou e o novo ciclo foi aberto. Sem esse plugin, o CRM funciona normalmente e só não oferece o ciclo.
 
 ## Para quem desenvolve
 

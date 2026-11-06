@@ -6,6 +6,7 @@ use NotificationEvent;
 use Plugin;
 use RuntimeException;
 use Session;
+use Toolbox;
 
 /**
  * Oportunidade comercial: nasce por um canal de entrada (WhatsApp, e-mail,
@@ -386,12 +387,75 @@ class Conversa extends BaseLogged
         $this->getFromDB($this->getID());
         Historico::record($this->getID(), $from, $etapaId);
         Alerta::record($etapa['kind'], $this->getID(), self::title($this->fields), 'Movida para ' . $etapa['name'], $etapaId);
-        return $etapa['kind'] === 'fechamento' ? $this->closingInfo() : null;
+        $this->autoCycle = null;
+        $this->cyclePaused = null;
+        if ($etapa['kind'] !== 'fechamento') {
+            // voltou para antes do fechamento: o ciclo já aberto para até a oportunidade seguir de novo
+            $this->cyclePaused = $this->pauseCycle('A oportunidade voltou para ' . $etapa['name'] . ' no CRM.');
+            return null;
+        }
+        if (($resumed = $this->resumeCycle('A oportunidade seguiu para o fechamento no CRM.'))) {
+            $this->autoCycle = $resumed + ['mode' => 'retomado'];
+            return null;
+        }
+        // aviso de fechamento: com a abertura automática ligada, o ciclo nasce agora e o Ciclo mostra o aviso no centro da tela
+        if ((int) $this->fields['status'] === self::OPEN && Settings::autoCycle() && self::cicloAvailable() && !$this->cicloInfo()) {
+            try {
+                $this->startCycle('hw_servico', (float) $this->fields['value'], $this->defaultCycleName());
+                $this->autoCycle = ($this->cicloInfo() ?? []) + ['mode' => 'aviso'];
+                return null;
+            } catch (\Throwable $e) {
+                Toolbox::logInFile('crm', 'Ciclo automático (fechamento) falhou: ' . $e->getMessage() . "\n");
+            }
+        }
+        if ($this->cicloInfo()) {
+            $this->autoCycle = $this->cicloInfo() + ['mode' => 'aviso'];
+            return null;
+        }
+        return $this->closingInfo();
     }
 
     /** Fecha como venda ou perda (ou reabre). O motivo só é gravado na perda. Na venda, devolve o aviso de fechamento. */
+    /** Ciclo aberto automaticamente na venda ganha (preenchido por close). */
+    public ?array $autoCycle = null;
+    /** Ciclo interrompido ao voltar para a negociação (preenchido por moveTo). */
+    public ?array $cyclePaused = null;
+
+    private function cicloObject(): ?\GlpiPlugin\Ciclo\Ciclo
+    {
+        $id = (int) ($this->fields['ciclo_id'] ?? 0);
+        if (!$id || !class_exists(\GlpiPlugin\Ciclo\Ciclo::class) || !class_exists(\GlpiPlugin\Ciclo\Fase::class)) {
+            return null;
+        }
+        $c = new \GlpiPlugin\Ciclo\Ciclo();
+        return $c->getFromDB($id) ? $c : null;
+    }
+
+    /** Interrompe o ciclo desta oportunidade (se estiver em andamento). Devolve os dados do ciclo ou null. */
+    private function pauseCycle(string $why): ?array
+    {
+        $c = $this->cicloObject();
+        if (!$c || (int) $c->fields['status'] !== \GlpiPlugin\Ciclo\Ciclo::OPEN || !defined('GlpiPlugin\\Ciclo\\Ciclo::PAUSED')) {
+            return null;
+        }
+        \GlpiPlugin\Ciclo\Fase::pause($c, $why);
+        return $this->cicloInfo();
+    }
+
+    /** Libera o ciclo interrompido (se houver). Devolve os dados do ciclo ou null. */
+    private function resumeCycle(string $why): ?array
+    {
+        $c = $this->cicloObject();
+        if (!$c || !defined('GlpiPlugin\\Ciclo\\Ciclo::PAUSED') || (int) $c->fields['status'] !== \GlpiPlugin\Ciclo\Ciclo::PAUSED) {
+            return null;
+        }
+        \GlpiPlugin\Ciclo\Fase::resume($c, $why);
+        return $this->cicloInfo();
+    }
+
     public function close(int $status, string $reason = ''): ?array
     {
+        $this->autoCycle = null;
         $this->update([
             'id'          => $this->getID(),
             'status'      => $status,
@@ -402,6 +466,21 @@ class Conversa extends BaseLogged
         $title = self::title($this->fields);
         if ($status === self::WON) {
             Alerta::record('venda', $this->getID(), $title, 'Venda fechada · ' . self::money((float) $this->fields['value']), (int) $this->fields['plugin_crm_etapas_id']);
+            if (Settings::autoCycle() && self::cicloAvailable()) {
+                try {
+                    $mode = 'ganho';
+                    $this->resumeCycle('Venda concretizada no CRM.');
+                    if (!$this->cicloInfo()) {
+                        $this->startCycle('hw_servico', (float) $this->fields['value'], $this->defaultCycleName());
+                        $mode = 'novo';
+                    }
+                    $this->autoCycle = ($this->cicloInfo() ?? []) + ['mode' => $mode];
+                    return null;
+                } catch (\Throwable $e) {
+                    // se o ciclo falhar a venda continua ganha; o usuário pode abrir pelo aviso de fechamento
+                    Toolbox::logInFile('crm', 'Ciclo automático falhou: ' . $e->getMessage() . "\n");
+                }
+            }
             return $this->closingInfo();
         }
         if ($status === self::LOST) {
@@ -440,6 +519,10 @@ class Conversa extends BaseLogged
             'code'   => \GlpiPlugin\Ciclo\Ciclo::code($id),
             'url'    => \GlpiPlugin\Ciclo\Ciclo::getFormURLWithID($id),
             'status' => \GlpiPlugin\Ciclo\Ciclo::STATUSES[(int) $row['status']][0] ?? '—',
+            'customer' => (string) ($row['customer'] ?? ''),
+            'amount'   => (float) ($row['amount'] ?? 0),
+            'date'     => substr((string) ($row['date_closing'] ?? ''), 0, 10),
+            'docs'     => countElementsInTable('glpi_plugin_ciclo_documentos', ['plugin_ciclo_ciclos_id' => $id]),
         ];
     }
 
@@ -473,6 +556,10 @@ class Conversa extends BaseLogged
             throw new RuntimeException('Esta oportunidade já tem um ciclo financeiro.', 409);
         }
         $f = $this->fields;
+        $docs = [];
+        foreach (Documento::forConversa($this->getID()) as $d) {
+            $docs[$d['doc_type']] ??= substr((string) $d['date'], 0, 10);
+        }
         $originMap = ['indicacao' => 'indicacao', 'marketing' => 'marketing', 'site' => 'marketing'];
         $crm = array_filter([
             'funnel_phase'     => 'conformidade',
@@ -489,6 +576,16 @@ class Conversa extends BaseLogged
             'contact_email'    => $f['email'],
             'contact_phone'    => $f['numero_wa'],
             'company_doc'      => $f['cnpj'],
+            'probability'      => '100',
+            'pain_description' => (string) $f['subject'],
+            'economic_buyer'   => $f['name'],
+            'am_estimate'      => (string) $amount,
+            'date_proposal_sent' => $docs['orcamento'] ?? null,
+            'docs_attached'    => $docs ? 'sim' : null,
+            'chk_commercial'   => isset($docs['orcamento']) ? 'sim' : null,
+            'chk_technical'    => isset($docs['proposta_tecnica']) ? 'sim' : null,
+            'chk_acceptance'   => isset($docs['pedido_compra']) ? 'sim' : null,
+            'chk_contract'     => isset($docs['contrato']) ? 'sim' : null,
         ], fn ($v) => $v !== null && $v !== '');
         $ciclo = new \GlpiPlugin\Ciclo\Ciclo();
         $cicloId = (int) $ciclo->add([
@@ -498,6 +595,7 @@ class Conversa extends BaseLogged
             'sale_type'   => $saleType,
             'amount'      => $amount,
             'comment'     => (string) $f['subject'],
+            'users_id_commercial' => (int) $f['users_id_attendant'],
             'crm'         => $crm,
         ]);
         if (!$cicloId) {
@@ -505,7 +603,60 @@ class Conversa extends BaseLogged
         }
         $this->update(['id' => $this->getID(), 'ciclo_id' => $cicloId, 'value' => $amount]);
         $this->getFromDB($this->getID());
-        return $this->cicloInfo() ?? ['id' => $cicloId];
+        $moved = $this->carryDocuments($cicloId);
+        return ($this->cicloInfo() ?? ['id' => $cicloId]) + ['docs' => $moved['ok'], 'docs_skipped' => $moved['skipped']];
+    }
+
+    public function defaultCycleName(): string
+    {
+        $subject = trim((string) $this->fields['subject']);
+        return trim(self::title($this->fields) . ($subject !== '' ? ' · ' . $subject : ''));
+    }
+
+    /** Copia todos os documentos da oportunidade para o ciclo (Documentos do GLPI + fase Aviso de Fechamento). */
+    private function carryDocuments(int $cicloId): array
+    {
+        global $DB;
+        $category = ['edital' => 1, 'orcamento' => 21, 'proposta_tecnica' => 21, 'contrato' => 3, 'pedido_compra' => 6, 'ata' => 20];
+        $ciclo = new \GlpiPlugin\Ciclo\Ciclo();
+        $ciclo->getFromDB($cicloId);
+        $ok = 0;
+        $skipped = [];
+        foreach (Documento::forConversa($this->getID()) as $d) {
+            $src = Documento::path($d);
+            $name = (string) $d['name'];
+            if (!is_file($src) || !\Document::isValidDoc($name)) {
+                $skipped[] = $name;
+                continue;
+            }
+            $prefix = 'cf' . bin2hex(random_bytes(6)) . '_';
+            $tmp = GLPI_TMP_DIR . '/' . $prefix . $name;
+            if (!copy($src, $tmp)) {
+                $skipped[] = $name;
+                continue;
+            }
+            $label = Documento::TYPES[$d['doc_type']] ?? 'Documento';
+            $docId = (int) (new \Document())->add([
+                'name'                  => $name,
+                'comment'               => 'Documento do CRM (' . $label . ') · ' . self::code($this->getID()),
+                'documentcategories_id' => $category[$d['doc_type']] ?? 2,
+                '_filename'             => [$prefix . $name],
+                '_prefix_filename'      => [$prefix],
+                'itemtype'              => \GlpiPlugin\Ciclo\Ciclo::class,
+                'items_id'              => $cicloId,
+                'entities_id'           => (int) $ciclo->fields['entities_id'],
+                'is_recursive'          => 1,
+            ]);
+            @unlink($tmp);
+            if (!$docId) {
+                $skipped[] = $name;
+                continue;
+            }
+            $DB->insert('glpi_plugin_ciclo_documentos', ['documents_id' => $docId, 'plugin_ciclo_ciclos_id' => $cicloId, 'code' => 'aviso']);
+            \GlpiPlugin\Ciclo\Evento::record($cicloId, 'aviso', 'comment', 'Documento trazido do CRM: ' . $name . ' (' . $label . ')');
+            $ok++;
+        }
+        return ['ok' => $ok, 'skipped' => $skipped];
     }
 
     // --------------------------------------------------------------- chat

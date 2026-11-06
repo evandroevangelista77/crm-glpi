@@ -117,7 +117,7 @@ function plugin_crm_install(): bool
         . 'WHERE NOT EXISTS (SELECT 1 FROM `' . Historico::getTable() . '` h WHERE h.`plugin_crm_conversas_id` = c.`id`)');
 
     // configuração e segredo do webhook: gerados uma vez e mantidos nas atualizações
-    $defaults = ['sla_minutes' => '60', 'popup_seconds' => '8', 'gateway_url' => '', 'alert_rules' => '{}', 'ask_cycle' => '1'];
+    $defaults = ['sla_minutes' => '60', 'popup_seconds' => '8', 'gateway_url' => '', 'alert_rules' => '{}', 'ask_cycle' => '1', 'auto_cycle' => '1'];
     $current = Config::getConfigurationValues(Settings::CONTEXT);
     $missing = array_diff_key($defaults, $current);
     if (empty($current['webhook_secret'])) {
@@ -157,7 +157,7 @@ function plugin_crm_uninstall(): bool
         $DB->dropTable($table, true);
     }
     $DB->delete('glpi_logs', ['itemtype' => Conversa::class]);
-    Config::deleteConfigurationValues(Settings::CONTEXT, ['webhook_secret', 'sla_minutes', 'popup_seconds', 'gateway_url', 'alert_rules', 'idle_checked_at', 'ask_cycle', 'esteira_v3']);
+    Config::deleteConfigurationValues(Settings::CONTEXT, ['webhook_secret', 'sla_minutes', 'popup_seconds', 'gateway_url', 'alert_rules', 'idle_checked_at', 'ask_cycle', 'auto_cycle', 'esteira_v3']);
     ProfileRight::deleteProfileRights([Conversa::$rightname]);
     unset($_SESSION['glpimenu']);
     return true;
