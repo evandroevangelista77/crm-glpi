@@ -8,6 +8,9 @@ namespace GlpiPlugin\Crm;
  */
 class Etapa extends Base
 {
+    /** Etapa para onde a oportunidade vai quando o Ciclo Financeiro a devolve ao Aviso de Fechamento. */
+    public const RENEGOTIATION = 'Renegociação e ajustes';
+
     /** [nome, tipo, probabilidade de fechar em %, para quem vale] */
     public const DEFAULTS = [
         ['Entrada', 'prevenda', 10, 'all'],
@@ -16,6 +19,7 @@ class Etapa extends Base
         ['Elaboração do orçamento', 'negociacao', 40, 'all'],
         ['Orçamento enviado', 'negociacao', 55, 'all'],
         ['Negociação', 'negociacao', 70, 'all'],
+        [self::RENEGOTIATION, 'negociacao', 60, 'all'],
         ['Fechamento', 'fechamento', 90, 'all'],
     ];
 

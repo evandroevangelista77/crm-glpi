@@ -6,6 +6,7 @@ use GlpiPlugin\Crm\Ata;
 use GlpiPlugin\Crm\Documento;
 use GlpiPlugin\Crm\Etapa;
 use GlpiPlugin\Crm\Historico;
+use GlpiPlugin\Crm\Lead;
 use GlpiPlugin\Crm\Mensagem;
 use GlpiPlugin\Crm\Notifications;
 use GlpiPlugin\Crm\Preferencia;
@@ -48,6 +49,12 @@ function plugin_crm_install(): bool
         // histórico de etapas (tempo em cada fase) e atas de reunião
         Historico::getTable() => "`id` int $sign NOT NULL AUTO_INCREMENT, `plugin_crm_conversas_id` $int, `from_etapas_id` $int, `plugin_crm_etapas_id` $int,
             `users_id` $int, `date` timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`), KEY `plugin_crm_conversas_id` (`plugin_crm_conversas_id`)",
+        // leads captados em eventos (enviados pelo plugin Gestão de Eventos)
+        Lead::getTable() => "`id` int $sign NOT NULL AUTO_INCREMENT, `event_id` $int, `event_code` varchar(30) DEFAULT NULL, `event_name` varchar(255) DEFAULT NULL, `event_date` date DEFAULT NULL,
+            `name` varchar(255) NOT NULL, `company` varchar(255) DEFAULT NULL, `email` varchar(255) DEFAULT NULL, `phone` varchar(50) DEFAULT NULL, `job_title` varchar(150) DEFAULT NULL,
+            `interest` varchar(20) NOT NULL DEFAULT 'outro', `temperature` varchar(10) NOT NULL DEFAULT 'morno', `status` varchar(15) NOT NULL DEFAULT 'novo', `notes` text,
+            `conversas_id` $int, `users_id_attendant` $int, `date_creation` timestamp NULL DEFAULT NULL, `date_mod` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`), KEY `event_id` (`event_id`), KEY `status` (`status`), KEY `email` (`email`)",
         Ata::getTable() => "`id` int $sign NOT NULL AUTO_INCREMENT, `plugin_crm_conversas_id` $int, `meeting_date` datetime DEFAULT NULL, `kind` varchar(12) NOT NULL DEFAULT 'presencial',
             `title` varchar(255) NOT NULL, `participants` varchar(500) DEFAULT NULL, `summary` mediumtext, `decisions` text, `duration_min` int NOT NULL DEFAULT 0,
             `plugin_crm_documentos_id` $int, `users_id` $int, `date_creation` timestamp NULL DEFAULT NULL,
@@ -111,6 +118,11 @@ function plugin_crm_install(): bool
         Settings::set(['esteira_v3' => '1']);
     }
 
+    // 0.6.1: coluna "Renegociação e ajustes" (entre Negociação e Fechamento) para onde o Ciclo devolve a oportunidade
+    if (!countElementsInTable($stages, ['name' => Etapa::RENEGOTIATION])) {
+        $DB->insert($stages, ['name' => Etapa::RENEGOTIATION, 'rank' => 65, 'is_active' => 1, 'kind' => 'negociacao', 'probability' => 60, 'scope' => 'all']);
+    }
+
     // 0.4.0: oportunidades que já existiam ganham um primeiro registro no histórico de etapas
     $DB->doQuery('INSERT INTO `' . Historico::getTable() . '` (`plugin_crm_conversas_id`, `from_etapas_id`, `plugin_crm_etapas_id`, `users_id`, `date`) '
         . 'SELECT c.`id`, 0, c.`plugin_crm_etapas_id`, 0, COALESCE(c.`date_creation`, NOW()) FROM `' . Conversa::getTable() . '` c '
@@ -153,7 +165,7 @@ function plugin_crm_uninstall(): bool
 {
     global $DB;
     Notifications::uninstall();
-    foreach ([Mensagem::getTable(), Conversa::getTable(), Etapa::getTable(), Alerta::getTable(), Preferencia::getTable(), Documento::getTable(), Historico::getTable(), Ata::getTable()] as $table) {
+    foreach ([Mensagem::getTable(), Conversa::getTable(), Etapa::getTable(), Alerta::getTable(), Preferencia::getTable(), Documento::getTable(), Historico::getTable(), Ata::getTable(), Lead::getTable()] as $table) {
         $DB->dropTable($table, true);
     }
     $DB->delete('glpi_logs', ['itemtype' => Conversa::class]);

@@ -5,6 +5,8 @@
  */
 
 use GlpiPlugin\Crm\Conversa;
+use GlpiPlugin\Crm\Lead;
+use GlpiPlugin\Crm\Menu;
 
 Session::checkLoginUser();
 
@@ -23,6 +25,22 @@ try {
     $id = (int) ($in['id'] ?? 0);
 
     switch ($in['action'] ?? '') {
+        case 'lead_status':
+            Lead::setStatus($id, (string) ($in['status'] ?? ''));
+            $reply(['ok' => true]);
+            return;
+        case 'lead_convert':
+            if (!Conversa::canCreate()) {
+                throw new RuntimeException('Sem permissão para criar oportunidades.', 403);
+            }
+            $opp = Lead::convert($id);
+            $reply(['ok' => true, 'url' => Menu::page('/front/oportunidade.php?id=' . $opp)]);
+            return;
+        case 'lead_delete':
+            global $DB;
+            $DB->delete(Lead::getTable(), ['id' => $id]);
+            $reply(['ok' => true]);
+            return;
         case 'board':
             $reply(Conversa::board());
             return;

@@ -83,7 +83,7 @@ $ok('oportunidades quentes: ' . count($boot['hot'] ?? []) . ' (' . implode(', ',
 foreach (['crm-fn-row', 'crm-daycol', 'oak-kpi-click', 'crm-slice', 'crm-chrow', 'crm-hotbtn', 'crm-spark', 'Relatório executivo'] as $s) { $ok("dashboard contém '$s'", str_contains($html, $s)); }
 
 // ---- páginas
-$pages = ['dashboard' => ['dashboard.php', []], 'entradas' => ['entradas.php', []], 'oportunidade' => ['oportunidade.php', ['id' => $open]], 'conversas' => ['conversas.php', ['id' => 1]], 'config' => ['config.php', ['tab' => 'etapas']]];
+$pages = ['dashboard' => ['dashboard.php', []], 'entradas' => ['entradas.php', []], 'oportunidade' => ['oportunidade.php', ['id' => $open]], 'conversas' => ['conversas.php', ['id' => 1]], 'config' => ['config.php', ['tab' => 'etapas']], 'leads' => ['leads.php', []]];
 foreach ($pages as $name => [$file, $get]) {
     $_GET = $get; $_REQUEST = $get; $_POST = []; $_SERVER['REQUEST_METHOD'] = 'GET';
     ob_start();

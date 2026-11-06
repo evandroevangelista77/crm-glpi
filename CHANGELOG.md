@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+- Nova tela **Gestão de Leads** no menu CRM: leads captados em eventos (plugin Gestão de Eventos), por evento, com situação (novo, contatado, qualificado, convertido, descartado), temperatura, interesse e conversão em oportunidade (canal "Presencial / evento"). Tabela `glpi_plugin_crm_leads`; `Lead::receive()` recebe os leads sem duplicar.
+- Na Gestão de Eventos 1.3.0, a aba Marketing ganhou "Leads captados" e o botão **Enviar leads para o CRM**.
+- Teste `tests/leads.php`.
+
+## 0.6.1
+
+- Nova coluna **Renegociação e ajustes** no funil (entre Negociação e Fechamento): para lá vai a oportunidade quando o Ciclo Financeiro é devolvido ao Aviso de Fechamento. O ciclo fica interrompido até ela seguir de novo para o Fechamento.
+
 ## 0.6.0
 
 - **Venda concretizada abre o ciclo financeiro sozinha** (opção "Abrir o ciclo financeiro sozinho" em Configurações > Alertas, ligada por padrão), sem perguntar.

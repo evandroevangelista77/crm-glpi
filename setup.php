@@ -13,7 +13,7 @@ use GlpiPlugin\Crm\Conversa;
 use GlpiPlugin\Crm\Dashboard;
 use GlpiPlugin\Crm\Menu;
 
-define('PLUGIN_CRM_VERSION', '0.6.0');
+define('PLUGIN_CRM_VERSION', '0.7.0');
 define('PLUGIN_CRM_MIN_GLPI', '11.0.0');
 define('PLUGIN_CRM_MAX_GLPI', '12.0.99');
 

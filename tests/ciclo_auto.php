@@ -14,7 +14,7 @@ $user = new User(); $user->getFromDBbyName('glpi');
 $auth = new Auth(); $auth->auth_succeded = true; $auth->user = $user;
 Session::init($auth);
 $_SESSION['glpi_currenttime'] = date('Y-m-d H:i:s');
-use GlpiPlugin\Crm\{Conversa, Documento};
+use GlpiPlugin\Crm\{Conversa, Documento, Etapa};
 $throws = function (callable $f) { try { $f(); return null; } catch (Throwable $e) { return $e->getMessage(); } };
 $ok = function ($label, $v) { echo ($v ? 'OK   ' : 'FALHA') . " $label\n"; return $v; };
 if (!Conversa::cicloAvailable()) { echo "Plugin Ciclo indisponível aqui.\n"; exit(2); }
@@ -40,6 +40,14 @@ $ok('voltar para Negociação interrompe o ciclo (status 4, nenhuma fase ativa)'
 $ok('ciclo interrompido recusa ação da fase', (bool) $throws(function () use ($cid) { $cy = new GlpiPlugin\Ciclo\Ciclo(); $cy->getFromDB($cid); GlpiPlugin\Ciclo\Fase::workflow($cy, 'conclude', []); }));
 $c->moveTo(4);
 $ok('seguir para Fechamento libera o ciclo (modo retomado, 1 fase ativa)', $st() === 1 && $phase() === 1 && ($c->autoCycle['mode'] ?? '') === 'retomado');
+// devolver ao Aviso de Fechamento pelo Ciclo manda a oportunidade de volta para a Negociação
+$cyc = new GlpiPlugin\Ciclo\Ciclo(); $cyc->getFromDB($cid);
+$msg = GlpiPlugin\Ciclo\Fase::workflow($cyc, 'return', ['comment' => 'Documentação incompleta', 'target' => 'aviso']);
+$c->getFromDB($id);
+$etName = Etapa::all()[(int) $c->fields['plugin_crm_etapas_id']]['name'] ?? '';
+$ok("devolver ao Aviso de Fechamento: oportunidade na coluna '$etName' e ciclo interrompido", $etName === 'Renegociação e ajustes' && $st() === 4 && $phase() === 0);
+$c->moveTo(4);
+$ok('seguir de novo: aviso concluído sozinho e ciclo liberado na fase seguinte', $st() === 1 && $phase() === 1 && ($DB->request(['FROM' => 'glpi_plugin_ciclo_fases', 'WHERE' => ['plugin_ciclo_ciclos_id' => $cid, 'code' => 'aviso', 'status' => 'done']])->count() === 1));
 $c->close(Conversa::WON);
 $cy = $c->autoCycle;
 $ok('ganhar depois reaproveita o ciclo (modo ganho)', ($cy['id'] ?? 0) === ($av['id'] ?? -1) && $cy['mode'] === 'ganho');

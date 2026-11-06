@@ -607,6 +607,41 @@ class Conversa extends BaseLogged
         return ($this->cicloInfo() ?? ['id' => $cicloId]) + ['docs' => $moved['ok'], 'docs_skipped' => $moved['skipped']];
     }
 
+    /**
+     * Chamado pelo plugin Ciclo quando o ciclo é devolvido ao Aviso de Fechamento: a oportunidade volta para a
+     * etapa de Negociação do funil (e o ciclo é interrompido por moveTo). Devolve o nome da etapa ou null.
+     */
+    public static function returnFromCycle(int $cicloId, string $why = ''): ?string
+    {
+        global $DB;
+        $row = $DB->request(['FROM' => self::getTable(), 'WHERE' => ['ciclo_id' => $cicloId, 'status' => self::OPEN], 'LIMIT' => 1])->current();
+        if (!$row) {
+            return null;
+        }
+        $c = new self();
+        $c->getFromDB((int) $row['id']);
+        $target = null;
+        foreach (Etapa::forClient($c->fields['client_type']) as $eid => $e) {
+            if ($e['kind'] !== 'negociacao') {
+                continue;
+            }
+            $n = mb_strtolower($e['name']);
+            if ($n === mb_strtolower(Etapa::RENEGOTIATION)) {
+                $target = $eid;
+                break;
+            }
+            if ($target === null || $n === 'negociação') {
+                $target = $eid;
+            }
+        }
+        if ($target === null) {
+            return null;
+        }
+        $c->moveTo((int) $target);
+        $name = Etapa::all()[$target]['name'];
+        return $name;
+    }
+
     public function defaultCycleName(): string
     {
         $subject = trim((string) $this->fields['subject']);

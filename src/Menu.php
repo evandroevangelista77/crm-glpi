@@ -47,6 +47,7 @@ class Menu
             $items['funil'] = ['title' => 'Funil de vendas', 'page' => self::page('/front/funil.php'), 'icon' => 'ti ti-layout-kanban'];
             $items['entradas'] = ['title' => 'Entradas', 'page' => self::page('/front/entradas.php'), 'icon' => 'ti ti-inbox',
                 'links' => Conversa::canCreate() ? ['add' => self::page('/front/entrada.php'), 'search' => self::page('/front/entradas.php')] : []];
+            $items['leads'] = ['title' => 'Gestão de Leads', 'page' => self::page('/front/leads.php'), 'icon' => 'ti ti-user-star'];
             $items['conversas'] = ['title' => 'Conversas', 'page' => self::page('/front/conversas.php'), 'icon' => 'ti ti-message-2'];
             $items['dashboard'] = ['title' => 'Dashboard CRM', 'page' => self::page('/front/dashboard.php'), 'icon' => 'ti ti-chart-bar'];
             $items['config'] = ['title' => 'Configurações', 'page' => self::page('/front/config.php'), 'icon' => 'ti ti-settings'];
@@ -66,6 +67,7 @@ class Menu
         'entrada'    => 'Registre um pedido de orçamento, uma licitação ou qualquer contato comercial: canal, tipo de cliente, contato, empresa e documentos. Cliente público exige o edital.',
         'oportunidade' => 'Ficha completa: esteira de venda até o fechamento, dados do cliente e do pedido, documentos e linha do tempo. No fechamento, o CRM oferece abrir o ciclo financeiro.',
         'funil'      => 'Oportunidades abertas por etapa. Arraste o cartão para outra coluna para mudar a etapa; clique para ver o resumo na gaveta lateral. A tela se atualiza sozinha.',
+        'leads'      => 'Leads captados nos eventos (Gestão de Eventos): acompanhe por evento, registre o contato, qualifique e converta em oportunidade do funil.',
         'conversas'  => 'Caixa de entrada do WhatsApp: converse com o cliente, atribua um atendente, ajuste o valor e mova a oportunidade pelo funil.',
         'dashboard'  => 'Pipeline, previsão, vendas e conversão no período, com comparação ao período anterior, funil, ranking de atendentes e motivos de perda.',
         'config'     => 'Etapas do funil, alertas sonoros e pop-up por tipo de evento, integração com o WhatsApp e as suas preferências pessoais.',
