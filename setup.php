@@ -21,6 +21,9 @@ function plugin_init_crm(): void
 {
     global $PLUGIN_HOOKS;
 
+    // aba do plugin em Administração → Perfis
+    Plugin::registerClass(GlpiPlugin\Crm\ProfileTab::class, ['addtabon' => [Profile::class]]);
+
     Plugin::registerClass(Conversa::class, ['notificationtemplates_types' => true]);
     Plugin::registerClass(Dashboard::class);
 
